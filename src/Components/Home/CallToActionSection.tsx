@@ -10,7 +10,7 @@ export default function CallToActionSection() {
       </h2>
 
       <Button className="text-lg px-6 py-4 cursor-pointer">
-        <Link href="/ToolsPage">Start Now</Link>
+        <Link href="/PromptAI">Start Now</Link>
       </Button>
     </section>
   );

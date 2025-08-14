@@ -59,7 +59,7 @@ export default function HeroSection() {
         asChild
         className="text-lg px-6 py-5 cursor-pointer text-white dark:text-black dark:bg-white dark:hover:bg-gray-100/90 relative z-10"
       >
-        <Link href="/ToolsPage">Get Started Free</Link>
+        <Link href="/PromptAI">Get Started Free</Link>
       </Button>
     </section>
   );

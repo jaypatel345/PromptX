@@ -116,13 +116,13 @@ export default function Navbar() {
                   </div>
                 </MenuItem>
               </Link>
-              <Link href="/ToolsPage">
+              <Link href="/PromptAI">
                 <MenuItem
                   setActive={setActive}
                   active={active}
                   item="Tools"
                   className={
-                    pathname === "/Tools"
+                    pathname === "/PromptAI"
                       ? "text-gray-600/80 dark:text-gray-300"
                       : "text-gray-900 dark:text-gray-400"
                   }
@@ -130,7 +130,7 @@ export default function Navbar() {
                   <div className="grid grid-cols-2 gap-4 p-5 cursor-pointer dark:bg-black  relative z-50 ">
                     <div className="hover:bg-gray-300 p-5 rounded-2xl">
                       <ProductItem
-                        title="Prompt Booster"
+                        title="Prompt AI"
                         description="Enhance and optimize your AI prompts instantly."
                         href="/ToolsPage"
                         src="/prompt-frameworks-1024x536.png.webp"

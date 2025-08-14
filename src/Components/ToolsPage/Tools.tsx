@@ -99,7 +99,7 @@ export default function Tools() {
           <div className="p-4 border-t border-gray-500/50">
             <button className="flex items-center space-x-3 w-full hover:bg-gray-300 hover:dark:bg-[#1b1a1a59] p-2 rounded-lg transition-colors">
               <div className="w-6 h-6  bg-gradient-to-r from-[#00BCFF] to-blue-500 rounded-full flex items-center justify-center">
-                <User className="w-3 h-3" />
+                <User className="w-5 h-6" />
               </div>
               <span className="text-sm">John Doe</span>
             </button>
