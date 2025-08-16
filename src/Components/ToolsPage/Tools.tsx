@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   MessageSquare,
   Settings,
@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 
 export default function Tools() {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [message, setMessage] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(Boolean);
@@ -71,6 +72,13 @@ export default function Tools() {
       handlechat(); // Use the main chat handler
     }
   };
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`; // Max height 120px
+    }
+  }, [message]);
 
   const project = [
     {
@@ -265,7 +273,7 @@ export default function Tools() {
                   {messagesList.map((msg, idx) => (
                     <div key={idx} className="w-full">
                       <div
-                        className={`p-3 rounded-xl max-w-[70%] inline-block break-words ${
+                        className={`p-2.5 rounded-xl max-w-[70%] inline-block break-words text-sm ${
                           msg.sender === "user"
                             ? "text-black dark:bg-gray-200/10 bg-gray-400/10 dark:text-white ml-auto"
                             : "  dark:text-white text-black relative pr-12"
@@ -312,16 +320,17 @@ export default function Tools() {
           </div>
 
           {/* Input Area */}
-          <div className="p-4  dark:border-gray-700 bg-white dark:bg-[#212121] dark:text-white ">
-            <div className="max-w-4xl mx-auto ">
-              <div className="flex items-center bg-white    transition-colors shadow-sm px-2 dark:bg-[#303030] dark:text-white border  rounded-4xl">
+          <div className="p-4 dark:border-gray-700 bg-white dark:bg-[#212121] dark:text-white">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-end bg-white transition-colors shadow-sm px-2 dark:bg-[#303030] dark:text-white border rounded-2xl">
                 {/* Plus icon */}
-                <button className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-color dark:bg-[#303030] dark:text-white ">
-                  <Plus className="w-5 h-5  dark:text-white" />
+                <button className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors dark:bg-[#303030] dark:text-white mb-1">
+                  <Plus className="w-5 h-5 dark:text-white" />
                 </button>
 
                 {/* Textarea */}
                 <textarea
+                  ref={textareaRef}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={(e) => {
@@ -331,25 +340,26 @@ export default function Tools() {
                     }
                   }}
                   placeholder="Ask anything"
-                  className="flex-1 bg-transparent  outline-none resize-none px-2 text-gray-900 dark:bg-[#303030] dark:text-white placeholder-gray-500 dark:placeholder-gray-400 max-h-32 min-h-[40px] py-4"
+                  className="flex-1 bg-transparent outline-none resize-none px-2 text-gray-900 dark:bg-[#303030] dark:text-white placeholder-gray-500 dark:placeholder-gray-400 min-h-[40px] py-3 leading-5 overflow-hidden"
                   rows={1}
+                  style={{ height: "auto" }}
                 />
 
                 {/* Icons on the right */}
-                <div className="flex items-center space-x-3 pr-2">
+                <div className="flex items-center space-x-3 pr-2 mb-1.5">
                   <button className="text-gray-500 hover:text-gray-400 dark:hover:text-gray-300 transition-colors">
-                    <Mic className="w-5 h-5 cursor-pointer " />
+                    <Mic className="w-5 h-5 cursor-pointer" />
                   </button>
                   <button
                     onClick={handleSendMessage}
                     disabled={!message.trim()}
-                    className={`p-2 rounded-lg  transition-colors ${
+                    className={`p-2 rounded-lg transition-colors ${
                       message.trim()
-                        ? "bg-gray-200 dark:bg-gray-400/20 text-black  hover:bg-gray-300 dark:hover:bg-gray-400/10"
-                        : "cursor-not-allowed "
+                        ? "bg-gray-200 dark:bg-gray-400/20 text-black hover:bg-gray-300 dark:hover:bg-gray-400/10"
+                        : "cursor-not-allowed text-gray-400"
                     }`}
                   >
-                    <Send className="w-4 h-4  dark:text-white cursor-pointer " />
+                    <Send className="w-4 h-4 dark:text-white cursor-pointer" />
                   </button>
                 </div>
               </div>

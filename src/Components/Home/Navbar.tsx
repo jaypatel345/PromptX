@@ -136,6 +136,7 @@ export default function Navbar() {
                         href="/ToolsPage"
                         src="/prompt-frameworks-1024x536.png.webp"
                         className="w-full h-40 object-cover rounded-lg"
+                        
                       />
                     </div>
                     <div className="hover:bg-gray-300 p-5 rounded-2xl ">

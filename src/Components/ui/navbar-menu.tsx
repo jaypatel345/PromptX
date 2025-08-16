@@ -2,8 +2,6 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-
-
 const transition = {
   type: "spring" as const,
   mass: 0.5,
@@ -84,7 +82,6 @@ export const ProductItem = ({
   description,
   href,
   src,
-  
 }: {
   title: string;
   description: string;

@@ -21,9 +21,9 @@ export default function HeroSection() {
         "AI Creativity"
       ],
       startDelay: 300,
-      typeSpeed: 50,
+      typeSpeed: 100,
       backSpeed: 50,
-      backDelay: 2200,
+      backDelay: 1200,
       smartBackspace: true,
       loop: false, // keep cycling
       showCursor: true,

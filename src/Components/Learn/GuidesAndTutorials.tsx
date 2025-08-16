@@ -128,30 +128,33 @@ Ready to experiment with LLMs and prompt engineering firsthand? Try the Vertex A
   return (
     <>
       <Head>
-        <title>Learn • PromptEnhancer</title>
+        <title>Learn â€¢ PromptEnhancer</title>
       </Head>
       <Navbar />
       <div className="flex items-start min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white">
-        {/* Sidebar */}
-        <aside className="hidden md:block w-64 border-r border-gray-200 dark:border-gray-800 p-6 sticky top-0 h-screen">
-          <nav className="space-y-2">
-            {sections.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => scrollToSection(s.id)}
-                className={`block text-left w-full px-3 py-2 rounded-md ${
-                  activeSection === s.id
-                    ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
-              >
-                {s.title}
-              </button>
-            ))}
-          </nav>
+        {/* Fixed Sidebar - line now starts below navbar */}
+        <aside className="hidden md:block w-64 p-6 fixed left-0 h-screen overflow-y-auto pt-24 z-40">
+          <div className="border-r border-gray-200 dark:border-gray-800 h-full pr-6">
+            <nav className="space-y-2">
+              {sections.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => scrollToSection(s.id)}
+                  className={`block text-left w-full px-3 py-2 rounded-md text-sm ${
+                    activeSection === s.id
+                      ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {s.title}
+                </button>
+              ))}
+            </nav>
+          </div>
         </aside>
-        {/* Main Content */}
-        <main className="flex-1 p-6 md:p-12 space-y-16">
+
+        {/* Main Content with left margin to account for fixed sidebar */}
+        <main className="flex-1 p-6 md:p-12 space-y-16 md:ml-64">
           {sections.map((s) => {
             const c = content[s.id];
             return (
@@ -161,6 +164,7 @@ Ready to experiment with LLMs and prompt engineering firsthand? Try the Vertex A
                 ref={(el) => {
                   sectionRefs.current[s.id] = el;
                 }}
+                className="scroll-mt-24"
               >
                 {s.id !== "use-cases" && (
                   <h2 className="text-3xl font-bold mb-4">{s.title}</h2>
