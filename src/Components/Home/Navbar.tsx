@@ -69,8 +69,9 @@ export default function Navbar() {
                 />
               </svg>
             </div>
-            <span className="font-semibold text-lg text-black dark:text-white">
-              PromptEnhancer
+            <span className=" font-bold text-lg text-black dark:text-white">
+              Prompt
+              <span className="text-2xl bg-gradient-to-r from-[#00BCFF] to-blue-500 bg-clip-text text-transparent">AI</span>
             </span>
           </Link>
 

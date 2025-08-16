@@ -8,6 +8,9 @@ module.exports = {
   darkMode: "class", // Enables dark mode using 'class' strategy
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"OpenAI Sans"', "sans-serif"],
+      },
       animation: {
         "shine-rotate": "shine-rotate 5s linear infinite",
       },

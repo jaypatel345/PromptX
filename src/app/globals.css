@@ -1,5 +1,7 @@
+@import url("https://chat.openai.com/fonts/openai-sans.css");
 @import "tailwindcss";
 @import "tw-animate-css";
+
 
 @custom-variant dark (&:is(.dark *));
 
@@ -133,8 +135,18 @@ body {
   padding: 0;
   overflow-x: hidden;
 }
-/* html, body {
-  height: 100%;
-} */
 
 
+.overflow-y-auto::-webkit-scrollbar {
+  display: none;
+}
+
+html, body {
+  font-family: "OpenAI Sans", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply font-sans;
+  }
+}
