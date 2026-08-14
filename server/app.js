@@ -47,6 +47,10 @@ app.use(
       const allowlist = new Set([
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://localhost:3002",
+        "http://127.0.0.1:3002",
         "https://promptx.co.in",
         "https://www.promptx.co.in",
         "https://api.promptx.co.in",
@@ -54,7 +58,7 @@ app.use(
       ]);
 
       const lanDevRegex =
-        /^http:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}):3000$/;
+        /^http:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}):(3000|3001|3002)$/;
       const vercelPreviewRegex = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
 
       const normalizedOrigin = normalize(origin);

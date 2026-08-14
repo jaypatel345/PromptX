@@ -130,10 +130,8 @@ function EnhacerHeader() {
     setConversationId,
     setMessages,
     startNewChat,
-    guestId,
   } = useChat();
-  const { isOpen, setIsOpen, setIsNavOpen, isLoginOpen, setIsLoginOpen } =
-    useUi();
+  const { isOpen, setIsOpen, setIsNavOpen, isLoginOpen, setIsLoginOpen } = useUi();
 
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -145,6 +143,7 @@ function EnhacerHeader() {
   >(null);
   const previewCache = useRef<Record<string, Message[]>>({});
   const searchCache = useRef<Record<string, string>>({});
+  const buttonRects = useRef<Record<string, DOMRect>>({});
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isHistoryHovered, setIsHistoryHovered] = useState(false);
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
@@ -196,11 +195,26 @@ function EnhacerHeader() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [user, setUser] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
+  // Initialize guestId if needed
+  const [stableGuestId, setStableGuestId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      let gid = localStorage.getItem("guestId");
+      if (!gid) {
+        gid = crypto.randomUUID();
+        localStorage.setItem("guestId", gid);
+      }
+      setStableGuestId(gid);
+    }
+  }, []);
+
+  const guestId = stableGuestId;
   const guestReady = !!guestId;
   const canFetchMessages = authChecked && (isLoggedIn || guestReady);
 
@@ -212,6 +226,9 @@ function EnhacerHeader() {
       pinnedAt?: string | null;
     }[]
   >([]);
+  
+
+
   const sorted = useMemo(() => {
     return [...conversations].sort((a, b) => {
       if (a.pinnedAt && b.pinnedAt) {
@@ -222,9 +239,7 @@ function EnhacerHeader() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [conversations]);
-  const latestConversations = useMemo(() => {
-    return sorted.slice(0, 11);
-  }, [sorted]);
+
   // --- HISTORY ACTION HANDLERS ---
   const handleRenameConversation = (id: string) => {
     const current = conversations.find((c) => c._id === id);
@@ -284,13 +299,17 @@ function EnhacerHeader() {
         isLoggedIn ? undefined : (guestId ?? undefined),
       );
 
-      const res = await apiClient.get(`/conversations`, {
+      // Load history in background
+      apiClient.get(`/conversations`, {
         params: isLoggedIn ? undefined : { guestId },
+      }).then(res => {
+        if (res.data?.success) {
+          setConversations(res.data.data?.conversations || []);
+        }
+      }).catch(err => {
+        console.error(err);
+        setConversations(prev);
       });
-
-      if (res.data?.success) {
-        setConversations(res.data.data?.conversations || []);
-      }
     } catch (err) {
       console.error(err);
       setConversations(prev);
@@ -317,13 +336,17 @@ function EnhacerHeader() {
         isLoggedIn ? undefined : (guestId ?? undefined),
       );
 
-      const res = await apiClient.get(`/conversations`, {
+      // Load history in background
+      apiClient.get(`/conversations`, {
         params: isLoggedIn ? undefined : { guestId },
+      }).then(res => {
+        if (res.data?.success) {
+          setConversations(res.data.data?.conversations || []);
+        }
+      }).catch(err => {
+        console.error(err);
+        setConversations(prev); // rollback
       });
-
-      if (res.data?.success) {
-        setConversations(res.data.data?.conversations || []);
-      }
     } catch (err) {
       console.error(err);
       setConversations(prev); // rollback
@@ -353,7 +376,7 @@ function EnhacerHeader() {
 
     window.addEventListener("resize", updateHeight);
     return () => window.removeEventListener("resize", updateHeight);
-  }, [latestConversations]);
+  }, [sorted]);
 
   const handleGoogleLogin = () => {
     window.location.href = `${API}/auth/google`;
@@ -525,25 +548,24 @@ function EnhacerHeader() {
     if (!authChecked) return;
     if (!isLoggedIn && !guestId) return;
 
-    let cancelled = false;
-
-    (async () => {
+    const loadConversations = async () => {
       try {
         const res = await apiClient.get(`/conversations`, {
           params: isLoggedIn ? undefined : { guestId },
         });
 
-        if (!cancelled && res.data?.success) {
-          setConversations(res.data.data?.conversations || []);
+        if (res.data?.success) {
+          const convs = res.data.data?.conversations || [];
+          setConversations(convs);
         }
       } catch (err: unknown) {
         console.error("Failed to load history", getErrorMessage(err));
       }
-    })();
-
-    return () => {
-      cancelled = true;
     };
+
+    // Load conversations with a small delay to not block initial render
+    const timeoutId = setTimeout(() => loadConversations(), 100);
+    return () => clearTimeout(timeoutId);
   }, [authChecked, isLoggedIn, guestId]);
 
   const openConversation = async (id: string) => {
@@ -570,7 +592,6 @@ function EnhacerHeader() {
 
   const createNewChat = async () => {
     try {
-      // 🚫 DO NOT update UI before backend success
       if (!isLoggedIn && !guestId) {
         console.warn("GuestId not ready, skipping create chat");
         return;
@@ -585,18 +606,58 @@ function EnhacerHeader() {
         return;
       }
 
+      // Immediately show the new chat interface
       startNewChat();
       setConversationId(newId);
 
-      const historyRes = await apiClient.get(`/conversations`, {
+      // Load history in background without blocking UI
+      apiClient.get(`/conversations`, {
         params: isLoggedIn ? undefined : { guestId },
+      }).then(historyRes => {
+        if (historyRes.data?.success) {
+          setConversations(historyRes.data.data?.conversations || []);
+        }
+      }).catch(err => {
+        console.error("Failed to load history after creating chat", err);
       });
-
-      if (historyRes.data?.success) {
-        setConversations(historyRes.data.data?.conversations || []);
-      }
     } catch (err: unknown) {
       console.error("Failed to create conversation", getErrorMessage(err));
+    }
+  };
+
+
+
+  const onLogin = async (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
+    if (loading) return;
+
+    try {
+      setLoading(true);
+
+      const response = await apiClient.post(`/auth/login`, {
+        email: user.email,
+        password: user.password,
+      });
+
+      if (response.data?.success) {
+        const me = await apiClient.get(`/user/me`);
+        const isGuest = !!me.data?.data?.isGuest;
+        const dataUser = me.data?.data?.user || null;
+        setIsLoggedIn(!!me.data?.success && !!dataUser && !isGuest);
+        setUserProfile(!isGuest ? (dataUser as UserProfile) : null);
+        setLoginError("");
+        setIsLoginOpen(false);
+
+        // Load conversations after login
+        const res = await apiClient.get(`/conversations`);
+        if (res.data?.success) {
+          setConversations(res.data.data?.conversations || []);
+        }
+      }
+    } catch (error: unknown) {
+      setLoginError(getErrorMessage(error) || "Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -623,44 +684,16 @@ function EnhacerHeader() {
     checkSession();
   }, []);
 
-  const onLogin = async (e?: React.SyntheticEvent) => {
-    e?.preventDefault();
-    if (loading) return;
-
-    try {
-      setLoading(true);
-
-      const response = await apiClient.post(`/auth/login`, {
-        email: user.email,
-        password: user.password,
-      });
-
-      if (response.data?.success) {
-        const me = await apiClient.get(`/user/me`);
-        const isGuest = !!me.data?.data?.isGuest;
-        const dataUser = me.data?.data?.user || null;
-        setIsLoggedIn(!!me.data?.success && !!dataUser && !isGuest);
-        setUserProfile(!isGuest ? (dataUser as UserProfile) : null);
-        setLoginError("");
-        setIsLoginOpen(false);
-      }
-    } catch (error: unknown) {
-      setLoginError(getErrorMessage(error) || "Invalid email or password");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="">
       <div className="flex justify-between ">
         <div
-          className={`flex flex-col transition-all duration-300 ease-(--grok-ease) pr-5 h-screen min-h-0 border-r border-gray-200 dark:border-neutral-600 z-50 bg-white dark:bg-black
+          className={`flex flex-col transition-all duration-300 ease-(--grok-ease) pr-5 h-screen min-h-0 border-r border-gray-200 dark:border-neutral-600 z-10 bg-white dark:bg-black
   ${
     isMobile
       ? `fixed top-0 left-0 w-[60vw] max-w-105 transform ${
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`
+        } z-[2000]`
       : isOpen
         ? "w-60 opacity-100"
         : "w-15 opacity-100"
@@ -930,7 +963,7 @@ function EnhacerHeader() {
               </div>
             )}
           </div>
-          <div className="mt-0 ml-2 flex flex-col relative items-start gap-1 pl-2 py-2 pr-3 rounded-2xl transition-all duration-200 w-full flex-1 min-h-0 overflow-hidden">
+          <div className="mt-0 ml-2 flex flex-col relative items-start gap-1 pl-2 py-2 pr-3 rounded-2xl transition-all duration-200 w-full flex-1 z-20" style={{ overflow: "visible" }}>
             {isOpen && !isHistoryCollapsed && (
               <div
                 className="absolute left-5 top-1.25 w-px bg-gray-200 dark:bg-neutral-700 transition-all duration-300"
@@ -949,19 +982,21 @@ function EnhacerHeader() {
                 className={`ml-4 -mt-2 flex flex-col gap-0.5 text-md w-full pr-2 hide-scrollbar overscroll-contain p-1 rounded-2xl transition-all duration-300 ease-(--grok-ease) ${
                   isHistoryCollapsed
                     ? "opacity-0 -translate-y-2 pointer-events-none max-h-0 overflow-hidden"
-                    : "opacity-100 translate-y-125"
+                    : "opacity-100"
                 }`}
                 style={{
                   WebkitOverflowScrolling: "touch",
                   scrollBehavior: "smooth",
                   overscrollBehavior: "contain",
+                  maxHeight: "calc(100vh - 300px)",
+                  overflowY: "auto",
                 }}
               >
-                {latestConversations.length === 0 && (
+                {sorted.length === 0 && (
                   <span className="text-gray-400 px-3 py-2">No chats yet</span>
                 )}
 
-                {sorted.slice(0, 11).map((conv, index) => {
+                {sorted.map((conv, index) => {
                   const isActive = conversationId === conv._id;
 
                   return (
@@ -969,7 +1004,7 @@ function EnhacerHeader() {
                       ref={
                         index === 0
                           ? firstItemRef
-                          : index === latestConversations.length - 1
+                          : index === sorted.length - 1
                             ? lastItemRef
                             : null
                       }
@@ -1009,25 +1044,27 @@ function EnhacerHeader() {
                             console.error("Preview fetch failed", err);
                           }
                         }}
-                        className={`group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 ease-(--grok-ease) truncate shrink-0 grok-hover pr-8
+                        className={`group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 ease-(--grok-ease) w-full grok-hover pr-8
             ${
               isActive
                 ? "bg-gray-200/40 dark:bg-neutral-700"
                 : "hover:bg-gray-100 dark:hover:bg-neutral-800"
             }`}
                       >
-                        <span className="truncate text-[14px] flex items-center gap-1">
+                        <span className="truncate text-[14px] flex items-center gap-1 flex-1 min-w-0">
                           {conv.pinnedAt && (
-                            <span className="ml-1 text-gray-500 dark:text-gray-300">
+                            <span className="text-gray-500 dark:text-gray-300 shrink-0">
                               <PinIcon size={12} />
                             </span>
                           )}
-                          {conv.title || "New Chat"}
+                          <span className="truncate">{conv.title || "New Chat"}</span>
                         </span>
                       </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          buttonRects.current[conv._id] = rect;
                           setOpenHistoryMenuId((prev) =>
                             prev === conv._id ? null : conv._id,
                           );
@@ -1048,7 +1085,11 @@ function EnhacerHeader() {
                       {openHistoryMenuId === conv._id && (
                         <div
                           onClick={(e) => e.stopPropagation()}
-                          className="absolute right-2 top-full mt-1 w-32 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg z-50 overflow-hidden text-sm"
+                          className="fixed w-36 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-xl z-[99999] text-sm"
+                          style={{
+                            left: '200px',
+                            top: `${buttonRects.current[conv._id]?.top || 0}px`,
+                          }}
                         >
                           <button
                             onClick={(e) => {
@@ -1624,11 +1665,11 @@ function EnhacerHeader() {
       {isRenameOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-999"
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[1000]"
             onClick={() => setIsRenameOpen(false)}
           />
 
-          <div className="fixed inset-0 z-1000 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
             <div
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-sm bg-white dark:bg-neutral-900 rounded-2xl shadow-xl p-5 animate-[grok-pop_0.25s_(--grok-ease)]"

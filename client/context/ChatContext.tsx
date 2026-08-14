@@ -20,6 +20,7 @@ export interface ConversationMeta {
   _id: string;
   title: string;
   createdAt: string;
+  pinnedAt?: string | null;
 }
 
 interface ChatContextType {
@@ -31,6 +32,7 @@ interface ChatContextType {
 
   setConversationId: React.Dispatch<React.SetStateAction<string | null>>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  setConversations: React.Dispatch<React.SetStateAction<ConversationMeta[]>>;
 
   startNewChat: () => void;
   loadConversation: (id: string, msgs: Message[]) => void;
@@ -46,19 +48,21 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [guestId, setGuestId] = useState<string | null>(null);
 
-  const API = API_BASE;
-
   // Load from localStorage on boot
   useEffect(() => {
     const savedConversationId = localStorage.getItem("conversationId");
     const savedMessages = localStorage.getItem("messages");
     let gid = localStorage.getItem("guestId");
 
+    console.log("ChatContext loading guestId from localStorage:", gid);
+
     if (!gid) {
       gid = crypto.randomUUID();
       localStorage.setItem("guestId", gid);
+      console.log("Generated new guestId:", gid);
     }
 
+    console.log("Setting guestId in ChatContext:", gid);
     setGuestId(gid);
 
     if (savedConversationId) setConversationIdState(savedConversationId);
@@ -93,41 +97,9 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
   };
 
   const refreshHistory = async () => {
-  try {
-    setLoadingHistory(true);
-
-    const gid = localStorage.getItem("guestId");
-
-    const url = gid
-      ? `${API}/conversations?guestId=${encodeURIComponent(gid)}`
-      : `${API}/conversations`;
-
-    const res = await fetch(url, { credentials: "include" });
-
-    const contentType = res.headers.get("content-type") || "";
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || `Request failed (${res.status})`);
-    }
-
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      throw new Error(text || "Expected JSON response");
-    }
-
-    const data = await res.json();
-
-    if (data?.success) setConversations(data?.data?.conversations || []);
-  } catch (err) {
-    console.error("Failed to load history", err);
-  } finally {
-    setLoadingHistory(false);
-  }
-};
-
-  useEffect(() => {
-    refreshHistory();
-  }, []);
+    // No-op - let enhancerHeader handle conversation loading
+    console.log("refreshHistory called - conversations handled by enhancerHeader");
+  };
 
   return (
     <ChatContext.Provider
@@ -139,6 +111,7 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
         guestId,
         setConversationId: setConversationIdState,
         setMessages: setMessagesState,
+        setConversations,
         startNewChat,
         loadConversation,
         refreshHistory,
